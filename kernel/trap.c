@@ -77,9 +77,15 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    if (0 != p->alarm_interval && !p->alarm_activated && ++p->interval_counter == p->alarm_interval) {
+      p->alarm_activated = 1;  // Prevent re-entrant calls to the handler.
+      p->interval_counter = 0;  // Reset number of ticks passed since the last call.
+      p->saved_tf = *p->trapframe;  // Save the user trapframe.
+      p->trapframe->epc = p->alarm_handler;  // Set the PC to the first instruction of the handler.
+    }
     yield();
-
+  }
   usertrapret();
 }
 
